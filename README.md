@@ -1,7 +1,7 @@
 # CHINESE_NER_PYTORCH
 Pytorch Version for NER, Name Entity Recognization
 
-Include LSTM (Random initialized Embeddings)+CRF or BERT Embeddings+CRF
+Include LSTM (Random initialized Embeddings)+CRF or BERT(Using results of pretrained bert as inputs)+CRF
 
 ## Requirements
    pytorch_pretrained_bert 0.6.2, can be changed to transformers(by huggging face), needs to modify the import in model.py (Not tested yet)
