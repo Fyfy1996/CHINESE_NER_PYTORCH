@@ -18,7 +18,7 @@ from dataset import read_corpus, read_dictionary, vocab_build, crfDataset, prepa
 from model import LSTMCRF, compute_forward
 from lstmcrf_utils import evaluate, get_entity
 
-class argss:
+class arguments:
     def __init__(self):
         self.model_name = "lstmcrf"
         self.train_data_path = "dataset/train_data"
@@ -72,7 +72,7 @@ if __name__ == "__main__":
       IPER: 8
     }
 
-    args = argss()
+    args = arguments()
     tb_writer = SummaryWriter(args.model_name)
     
     # build vocab, word2id, id2tag, id2word
@@ -133,14 +133,6 @@ if __name__ == "__main__":
         print("Start epoch {}".format(eidx).center(60,"="))
         # with tqdm.tqdm(total = len(train_loader)) as pbar:
         for bidx, batch in enumerate(train_loader):
-#            seq = _prepare_data(batch[0], token2idx, PAD, device)
-#            tags = _prepare_data(batch[1], tag2idx, END_TAG, device)
-#            mask = torch.ne(seq, float(token2idx[PAD])).float()
-#            length = mask.sum(0)
-#            _, idx = length.sort(0, descending=True)
-#            seq = seq[:, idx]
-#            tags = tags[:, idx]
-#            mask = mask[:, idx]
             seq, tags, mask = prepare_databatches(batch[0], batch[1], word2id, PAD, tag2idx,
                                                 END_TAG, UNK, device=device)
             optimizer.zero_grad()
