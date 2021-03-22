@@ -19,7 +19,7 @@ import datetime
 import os
 from lstmcrf_utils import bert_evaluate
 
-class argss:
+class arguments:
     def __init__(self):
         self.model_name = "bertcrf"
         self.bert_model_path = os.path.join("pretrained_models","bert-base-chinese")
@@ -77,7 +77,7 @@ if __name__ == "__main__":
       BPER: 7,
       IPER: 8
     }
-    args = argss()
+    args = arguments()
     tb_writer = SummaryWriter(args.model_name)
 
     id2tag ={v:k for k,v in tag2idx.items()}
@@ -140,7 +140,7 @@ if __name__ == "__main__":
     
         for bidx, batch  in enumerate(train_loader):
             x_batch, y_batch = batch[0], batch[1]
-            input_ids, segment_ids, mask = prepare_xbatch_for_bert(x_batch, tokenizer)
+            input_ids, segment_ids, mask = prepare_xbatch_for_bert(x_batch, tokenizer, device=device)
             # input_ids = input_ids.to(device)
             # segment_ids = input_ids.to(device)
             # mask = mask.to(device)
