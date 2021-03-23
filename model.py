@@ -1,9 +1,4 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Tue Feb 23 10:57:18 2021
-
-@author: fanyong
-"""
 
 import torch
 from torch import nn #, optim
