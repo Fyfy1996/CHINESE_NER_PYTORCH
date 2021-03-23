@@ -1,9 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Tue Feb 23 16:23:37 2021
 
-@author: fanyong
-"""
 import torch
 from dataset import _prepare_data, prepare_xbatch_for_bert
 
