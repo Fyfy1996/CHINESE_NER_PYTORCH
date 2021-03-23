@@ -1,9 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Tue Feb 23 14:35:31 2021
 
-@author: fanyong
-"""
 import logging
 import sys
 import os
