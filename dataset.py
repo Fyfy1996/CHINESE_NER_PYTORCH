@@ -1,9 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Tue Feb 23 13:57:32 2021
 
-@author: fanyong
-"""
 
 import torch
 from torch.utils.data import Dataset
