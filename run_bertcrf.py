@@ -5,7 +5,7 @@ import torch
 from torch import nn, optim
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
-from tensorboardX import SummaryWriter
+# from tensorboardX import SummaryWriter
 
 from model import BertCRF
 from dataset import crfDataset, prepare_xbatch_for_bert, _prepare_data
@@ -13,39 +13,76 @@ from pytorch_pretrained_bert import BertTokenizer
 import datetime
 import os
 from lstmcrf_utils import bert_evaluate
+import argparse
 
-class arguments:
-    def __init__(self):
-        self.model_name = "bertcrf"
-        self.bert_model_path = os.path.join("pretrained_models","bert-base-chinese")
-        self.bert_tokenizer_path = "bert-base-chinese" # os.path.join("pretrained_models","bert-base-chinese", "vocab")
-        
-        self.train_data_path = "dataset/train_data"
-        self.test_data_path = "dataset/test_data"
-        self.vocab_path = "vocab.pkl"
-        self.is_cuda = True
-        self.seed = 2021
-        self.batch_size = 2
-        self.embedding_size = 128
-        self.hidden_size = 128
-        self.rnn_layer = 1
-        self.dropout = 0.2
-        self.with_layer_norm = False
-        self.lr = 0.0005
-        self.epochs = 50
-        self.log_interval = 10
-        self.save_interval = 30
-        self.valid_interval = 60
-        self.patience = 30
-        self.load_chkpoint = False
-        self.chkpoint_model = os.path.join(self.model_name,"newest_model")
-        self.chkpoint_optim = os.path.join(self.model_name,"newest_optimizer")
+# class arguments:
+#     def __init__(self):
+#         self.model_name = "bertcrf"
+#         self.bert_model_path = os.path.join("pretrained_models","bert-base-chinese")
+#         self.bert_tokenizer_path = "bert-base-chinese" # os.path.join("pretrained_models","bert-base-chinese", "vocab")
+#
+#         self.train_data_path = "dataset/train_data"
+#         self.test_data_path = "dataset/test_data"
+#
+#         self.is_cuda = True
+#         self.seed = 2021
+#         self.batch_size = 2
+#
+#         self.with_lstm = False
+#         self.rnn_layer = 1
+#         self.dropout = 0.2
+#         self.with_layer_norm = False
+#         self.lr = 0.0005
+#         self.epochs = 50
+#         self.log_interval = 10
+#         self.save_interval = 30
+#         self.valid_interval = 60
+#         self.patience = 30
+#         self.load_chkpoint = False
+#         self.chkpoint_model = os.path.join(self.model_name,"newest_model")
+#         self.chkpoint_optim = os.path.join(self.model_name,"newest_optimizer")
 
 
 
 if __name__ == "__main__":
-    __spec__ = "ModuleSpec(name='builtins', loader=<class '_frozen_importlib.BuiltinImporter'>)"
-    
+    # __spec__ = "ModuleSpec(name='builtins', loader=<class '_frozen_importlib.BuiltinImporter'>)"
+
+    parser = argparse.ArgumentParser("This is the model for BERT+CRF")
+    parser.add_argument('--model_name', type=str, default="bertcrf", help="Model name, will create a fold to store model file")
+    parser.add_argument('--bert_model_path', type=str, default=os.path.join("pretrained_models","bert-base-chinese"),
+                        help="Bert pretrained model files")
+    parser.add_argument('--bert_tokenizer_path', type=str, default=os.path.join("pretrained_models","bert-base-chinese","vocab"),
+                        help="Bert pretrained tokenizer files")
+    parser.add_argument('--train_data_path', type=str, default="dataset/train_data",
+                        help="train data path")
+    parser.add_argument('--test_data_path', type=str, default="dataset/test_data",
+                       help="test data path")
+    parser.add_argument('--is_cuda', type=bool, default=True, help="Using cuda or not")
+    parser.add_argument('--cuda_device', type=int, default=0, help="When using gpu, use the ith one")
+    parser.add_argument('--seed', type=int, default=2021, help="Random seed")
+    parser.add_argument('--batch_size', type=int, default=64, help="batch size")
+
+    parser.add_argument('--with_lstm', type=bool, default=False, help="Using lstm on top of bert or not")
+    parser.add_argument('--rnn_layer', type=int, default=1, help="The number of lstm layers on top of bert, only useful when with_lstm = True")
+    parser.add_argument('--lstm_hid_size', type=int, default=256,
+                        help="The size of lstm hidden states on top of bert, only useful when with_lstm = True")
+    parser.add_argument('--lstm_bidirectional', type=bool, default=True,
+                        help="Bidirectional lstm or not on top of bert, only useful when with_lstm = True")
+
+    parser.add_argument('--dropout', type=float, default=0.1, help="dropout rate anywhere")
+    parser.add_argument('--with_layer_norm', type=bool, default=True, help="layer normalization")
+    parser.add_argument('--lr', type=float, default=0.0005, help="learning rate")
+    parser.add_argument('--epochs', type=int, default=50, help="Training epochs")
+    parser.add_argument('--log_interval', type=int, default=10, help="Printing things every x steps")
+    parser.add_argument('--save_interval', type=int, default=30, help="Saving models every x steps")
+    parser.add_argument('--valid_interval', type=int, default=60, help="validation every x steps")
+    parser.add_argument('--patience', type=int, default=10, help="Early stopping patience")
+    parser.add_argument('--load_chkpoint', type=bool, default=False, help="load check points or not for further training")
+    parser.add_argument('--chkpoint_model', type=str, default="bertcrf/newest_model", help="The newest model which will be continued to be trained")
+    parser.add_argument('--chkpoint_optim', type=str, default="bertcrf/newest_optimizer",
+                        help="The newest model's optimizer which will be continued to be trained")
+    args = parser.parse_args()
+
     START_TAG = "<START_TAG>"
     END_TAG = "<END_TAG>"
     O = "O"
@@ -72,8 +109,7 @@ if __name__ == "__main__":
       BPER: 7,
       IPER: 8
     }
-    args = arguments()
-    tb_writer = SummaryWriter(args.model_name)
+    # tb_writer = SummaryWriter(args.model_name)
 
     id2tag ={v:k for k,v in tag2idx.items()}
     
@@ -81,8 +117,9 @@ if __name__ == "__main__":
         os.makedirs(args.model_name)
     
     # set cuda device and seed
-    use_cuda = torch.cuda.is_available() and not args.is_cuda
-    device = torch.device('cuda' if use_cuda else 'cpu') 
+    use_cuda = torch.cuda.is_available() and args.is_cuda
+    cuda_device = ":{}".format(args.cuda_device)
+    device = torch.device('cuda'+cuda_device if use_cuda else 'cpu')
     torch.manual_seed(args.seed)
     if use_cuda:
         torch.cuda.manual_seed(args.seed)
@@ -98,8 +135,8 @@ if __name__ == "__main__":
     print("Building models")
     
     model = BertCRF(args.bert_model_path, len(tag2idx), tag2idx, START_TAG, END_TAG, 
-                     with_lstm = False, lstm_layers=1, bidirection=True,
-                     lstm_hid_size=256, dropout=0.2)
+                     with_lstm = args.with_lstm, lstm_layers=args.rnn_layer, bidirection=args.lstm_bidirectional,
+                     lstm_hid_size=args.lstm_hid_size, dropout=args.dropout)
     if args.load_chkpoint:
         print("==Loading Model from checkpoint: {}".format(args.chkpoint_model))
         model.load_state_dict(torch.load(args.chkpoint_model))
@@ -111,13 +148,12 @@ if __name__ == "__main__":
         print("==Loading optimizer from checkpoint: {}".format(args.chkpoint_optim))
         optimizer.load_state_dict(torch.load(args.chkpoint_optim))
     
-    
     tokenizer = BertTokenizer.from_pretrained(args.bert_tokenizer_path)
     
     
     print("Training", datetime.datetime.now())
     print("Cuda Usage: {}, device: {}".format(use_cuda, device))
-    model.train()
+
     step = 0
     
     best_f1 = 0
@@ -134,6 +170,7 @@ if __name__ == "__main__":
         print("Start epoch {}".format(eidx).center(60,"="))
     
         for bidx, batch  in enumerate(train_loader):
+            model.train()
             x_batch, y_batch = batch[0], batch[1]
             input_ids, segment_ids, mask = prepare_xbatch_for_bert(x_batch, tokenizer, device=device)
             # input_ids = input_ids.to(device)
@@ -146,7 +183,7 @@ if __name__ == "__main__":
             
             optimizer.zero_grad()
             loss = model.neg_log_likelihood(input_ids, segment_ids, mask, tags)
-            batch_size = input_ids.size(0)
+            batch_size = input_ids.size(1)
             loss /= batch_size
             # print(loss)
             loss.backward() 
@@ -159,10 +196,10 @@ if __name__ == "__main__":
                 torch.save(model.state_dict(), os.path.join(args.model_name, "newest_model"))
                 torch.save(optimizer.state_dict(), os.path.join(args.model_name, "newest_optimizer"))
             if step % args.valid_interval == 0:
-                f1, precision, recall = bert_evaluate(model, test_loader, tokenizer, START_TAG, END_TAG, id2tag, device=None)
-                tb_writer.add_scalar("eval/f1", f1, step)
-                tb_writer.add_scalar("eval/precision", precision, step)
-                tb_writer.add_scalar("eval/recall", recall, step)
+                f1, precision, recall = bert_evaluate(model, test_loader, tokenizer, START_TAG, END_TAG, id2tag, device=device)
+                #tb_writer.add_scalar("eval/f1", f1, step)
+                #tb_writer.add_scalar("eval/precision", precision, step)
+                #tb_writer.add_scalar("eval/recall", recall, step)
                 print("[valid] epoch {} step {} f1 {} precision {} recall {}".format(eidx, step, f1, precision, recall))
                 if f1 > best_f1:
                     patience = 0
@@ -173,13 +210,3 @@ if __name__ == "__main__":
                     patience += 1
                     if patience == args.patience:
                         early_stop = True
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
