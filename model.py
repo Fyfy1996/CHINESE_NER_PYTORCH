@@ -171,7 +171,7 @@ class LSTMCRF(nn.Module):
         """
         embed = self.embedding(seq) # (seq_len, batch_size, embedding_size)
         embed = self.dropout(embed)
-        embed = nn.utils.rnn.pack_padded_sequence(embed, mask.sum(0).long())
+        embed = nn.utils.rnn.pack_padded_sequence(embed, mask.sum(0).long().cpu(), enforce_sorted=False)
         lstm_output, _ = self.bilstm(embed) # (seq_len, batch_size, hidden_size)
         lstm_output, _ = nn.utils.rnn.pad_packed_sequence(lstm_output)
         lstm_output = lstm_output * mask.unsqueeze(-1)
@@ -240,8 +240,8 @@ class BertCRF(nn.Module):
 
         self.crf = CRFLayer(tag_size, tag2idx, START_TAG, END_TAG)
         # freeze the Bert model
-        for name ,param in self.bert.named_parameters():
-            param.requires_grad = False
+        # for name ,param in self.bert.named_parameters():
+        #     param.requires_grad = False
         self.reset_parameters()
 
     def reset_parameters(self):
@@ -252,13 +252,13 @@ class BertCRF(nn.Module):
         bert_outs = hidden_states[-1] #(seq_len, batch_size, hidden_size)
         if self.with_lstm:
             bert_outs = self.dropout(bert_outs)
-            bert_outs_pad = nn.utils.rnn.pack_padded_sequence(bert_outs, mask_tensor.sum(0).long())
+            bert_outs_pad = nn.utils.rnn.pack_padded_sequence(bert_outs, mask_tensor.sum(0).long().cpu(), enforce_sorted=False)
             lstm_output, _ = self.bilstm(bert_outs_pad) # (seq_len, batch_size, hidden_size)
             lstm_output, _ = nn.utils.rnn.pad_packed_sequence(lstm_output)
             lstm_output = lstm_output * mask_tensor.unsqueeze(-1)
         else:
             bert_outs = self.dropout(bert_outs)
-            # bert_outs = nn.utils.rnn.pack_padded_sequence(bert_outs, mask_tensor.sum(0).long())
+            # bert_outs = nn.utils.rnn.pack_padded_sequence(bert_outs, mask_tensor.sum(0).long().cpu(), enforce_sorted=False)
             lstm_output = bert_outs * mask_tensor.unsqueeze(-1)
         lstm_features = self.hidden2tag(lstm_output) * mask_tensor.unsqueeze(-1)
         return lstm_features
