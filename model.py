@@ -6,7 +6,6 @@ from torch import nn #, optim
 from torch.nn import init
 # import numpy as np
 # from tensorboardX import SummaryWriter
-from pytorch_pretrained_bert import BertModel
 
 
 def log_sum_exp(tensor: torch.Tensor,
@@ -204,87 +203,6 @@ class LSTMCRF(nn.Module):
         return best_paths
 
 
-class BertCRF(nn.Module):
-    def __init__(self, bert_model, tag_size, tag2idx, START_TAG, END_TAG, 
-                 with_lstm = True, lstm_layers=1, bidirection=True,
-                 lstm_hid_size=256, dropout=0.2):
-        """
-        Params:
-            bert_model(str), the bert model name, like "bert-base-chinese", or the address of stored bert model
-            tag_size (int), the # of tags
-            tag2idx (dict), the mapping of tags and its id
-            START_TAG (str), the starting symbol of tags 
-            END_TAG (str), the ending symbol of tags
-            with_lstm (bool), whether to use lstm at the top of Bert, default True
-            lstm_layers(int), the # of layers of lstm, default 1, not used while with_lstm = False
-            bidirection(bool), whether use bidirecitonal lstm or not, default True, not used while with_lstm = False
-            lstm_hid_size(int), the hiddensize of lstm nodes, default 256 , not used while with_lstm = False 
-            dropout (float), dropout rate
-        """
-        super(BertCRF, self).__init__()
-        self.bert = BertModel.from_pretrained(bert_model)
-        self.dropout = nn.Dropout(dropout)
-        self.with_lstm = with_lstm
-        if with_lstm:
-            self.bilstm = nn.LSTM(input_size=768,
-                              hidden_size=lstm_hid_size,
-                              num_layers=lstm_layers,
-                              dropout=dropout,
-                              bidirectional=bidirection)
-            if bidirection:
-                self.hidden2tag = nn.Linear(lstm_hid_size * 2, tag_size)
-            else:
-                self.hidden2tag = nn.Linear(lstm_hid_size, tag_size)
-        else:
-            self.hidden2tag = nn.Linear(768, tag_size)
-
-        self.crf = CRFLayer(tag_size, tag2idx, START_TAG, END_TAG)
-        # freeze the Bert model
-        # for name ,param in self.bert.named_parameters():
-        #     param.requires_grad = False
-        self.reset_parameters()
-
-    def reset_parameters(self):
-        init.xavier_normal_(self.hidden2tag.weight)
-    
-    def get_lstm_features(self, id_tensor, sen_tensor, mask_tensor):
-        hidden_states, pooled_outs = self.bert(id_tensor, sen_tensor, mask_tensor)
-        bert_outs = hidden_states[-1] #(seq_len, batch_size, hidden_size)
-        if self.with_lstm:
-            bert_outs = self.dropout(bert_outs)
-            bert_outs_pad = nn.utils.rnn.pack_padded_sequence(bert_outs, mask_tensor.sum(0).long().cpu(), enforce_sorted=False)
-            lstm_output, _ = self.bilstm(bert_outs_pad) # (seq_len, batch_size, hidden_size)
-            lstm_output, _ = nn.utils.rnn.pad_packed_sequence(lstm_output)
-            lstm_output = lstm_output * mask_tensor.unsqueeze(-1)
-        else:
-            bert_outs = self.dropout(bert_outs)
-            # bert_outs = nn.utils.rnn.pack_padded_sequence(bert_outs, mask_tensor.sum(0).long().cpu(), enforce_sorted=False)
-            lstm_output = bert_outs * mask_tensor.unsqueeze(-1)
-        lstm_features = self.hidden2tag(lstm_output) * mask_tensor.unsqueeze(-1)
-        return lstm_features
-    
-    def neg_log_likelihood(self, id_tensor, sen_tensor, mask_tensor, tags):
-        """
-        :param seq: (seq_len, batch_size)
-        :param tags: (seq_len, batch_size)
-        :param mask: (seq_len, batch_size)
-        """
-        lstm_features = self.get_lstm_features(id_tensor, sen_tensor, mask_tensor)
-        forward_score = self.crf(lstm_features, mask_tensor)
-        gold_score = self.crf.score_sentence(lstm_features, tags, mask_tensor)
-        loss = (forward_score - gold_score).sum()
-        
-        return loss
-    
-    def predict(self, id_tensor, sen_tensor, mask_tensor):
-        """
-        :param seq: (seq_len, batch_size)
-        :param mask: (seq_len, batch_size)
-        """
-        lstm_features = self.get_lstm_features(id_tensor, sen_tensor, mask_tensor)
-        best_paths = self.crf.viterbi_decode(lstm_features, mask_tensor)
-
-        return best_paths
             
 
 def compute_forward(model, seq, tags, mask):
