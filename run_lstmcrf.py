@@ -12,35 +12,84 @@ from torch import nn, optim
 
 from dataset import read_corpus, read_dictionary, vocab_build, crfDataset, prepare_databatches
 from model import LSTMCRF, compute_forward
-from lstmcrf_utils import evaluate, get_entity
+from lstmcrf_utils import evaluate, get_entity, save_parser
 
-class arguments:
-    def __init__(self):
-        self.model_name = "lstmcrf"
-        self.train_data_path = "dataset/train_data"
-        self.test_data_path = "dataset/test_data"
-        self.vocab_path = "vocab.pkl"
-        self.no_cuda = False
-        self.seed = 2021
-        self.batch_size = 64
-        self.embedding_size = 128
-        self.hidden_size = 128
-        self.rnn_layer = 1
-        self.dropout = 0.2
-        self.with_layer_norm = False
-        self.lr = 0.0005
-        self.epochs = 50
-        self.log_interval = 10
-        self.save_interval = 30
-        self.valid_interval = 60
-        self.patience = 30
-        self.load_chkpoint = True
-        self.chkpoint_model = "lstmcrf/newest_model"
-        self.chkpoint_optim = "lstmcrf/newest_optimizer"
+import argparse
+
+
+def parser():
+    parser = argparse.ArgumentParser("This is a trying on argparse")
+    parser.add_argument('--model_name', type=str, 
+                        help="Model name, will create a fold to store model file")
+    parser.add_argument('--train_data_path', type=str, default="dataset/train_data",
+                        help="train data path")
+    parser.add_argument('--test_data_path', type=str, default="dataset/test_data",
+                       help="test data path")
+    parser.add_argument('--vocab_path', type=str,
+                        default="vocab.pkl",help= "the vocab path under `model_name` folder")
+    
+    parser.add_argument('--is_cuda', type=bool, default=True, help="Using cuda or not")
+    parser.add_argument('--cuda_device', type=int, default=0, help="When using gpu, use the ith one")
+    parser.add_argument('--seed', type=int, default=2021, help="Random seed")
+    
+    parser.add_argument('--batch_size', type=int, default=64, help="batch size")
+    parser.add_argument("--embedding_size", type=int, default=128)
+    parser.add_argument("--hidden_szie", type=int, default=128)
+    parser.add_argument("--rnn_layer", type=int, default=1, help="number of stacked RNN layers")
+    parser.add_argument("--dropout", type=float, default=0.1)
+    parser.add_argument("--with_layer_norm", type=bool, default=False)
+    
+    parser.add_argument("--lr", type=float, default=0.005, help="Learning rate")
+    
+    parser.add_argument("--epochs", type=int, default=30, help="Learning rate")
+    
+    parser.add_argument("--log_interval", type=int, default=30, help="Print loss every x steps")
+    parser.add_argument("--save_interval", type=int, default=30, help="save model every x steps")
+    parser.add_argument("--valid_interval", type=int, default=30, 
+                        help="Do validation on test set every x steps")
+    
+    parser.add_argument("--patience", type=int, default=10, 
+                        help="Do early stopping when there's no approvment on test setafter x times validation")
+    
+    parser.add_argument("--load_chkpoint", type=False, default=False,
+                        help="Whether continuously trained on the previou model")
+    parser.add_argument('--chkpoint_model', type=str,
+                        help= "chk point model path, needed  when load_chkpoint is true")
+    parser.add_argument('--chkpoint_optim', type=str,
+                        help= "chk point optimizer path, needed  when load_chkpoint is true")
+    
+    args = parser.parse_args()
+    return args
+
+
+# class arguments:
+#     def __init__(self):
+#         self.model_name = "lstmcrf"
+#         self.train_data_path = "dataset/train_data"
+#         self.test_data_path = "dataset/test_data"
+#         self.vocab_path = "vocab.pkl"
         
+#         self.no_cuda = False
+#         self.seed = 2021
+#         self.batch_size = 64
         
-if __name__ == "__main__":
-    __spec__ = "ModuleSpec(name='builtins', loader=<class '_frozen_importlib.BuiltinImporter'>)"
+#         self.embedding_size = 128
+#         self.hidden_size = 128
+#         self.rnn_layer = 1
+#         self.dropout = 0.2
+#         self.with_layer_norm = False
+#         self.lr = 0.0005
+#         self.epochs = 50
+#         self.log_interval = 10
+#         self.save_interval = 30
+#         self.valid_interval = 60
+#         self.patience = 30
+#         self.load_chkpoint = True
+#         self.chkpoint_model = "lstmcrf/newest_model"
+#         self.chkpoint_optim = "lstmcrf/newest_optimizer"
+        
+
+def main(args):
     START_TAG = "<START_TAG>"
     END_TAG = "<END_TAG>"
     O = "O"
@@ -68,7 +117,7 @@ if __name__ == "__main__":
       IPER: 8
     }
 
-    args = arguments()
+    args = parser()
     tb_writer = SummaryWriter(args.model_name)
     
     # build vocab, word2id, id2tag, id2word
@@ -78,8 +127,8 @@ if __name__ == "__main__":
     id2tag  = {v:k for k,v in tag2idx.items()} 
     
     # set cuda device and seed
-    use_cuda = torch.cuda.is_available() and not args.no_cuda
-    device = torch.device('cuda' if use_cuda else 'cpu')
+    use_cuda = torch.cuda.is_available() and args.is_cuda
+    device = torch.device('cuda:{}'.format(args.cuda_device) if use_cuda else 'cpu')
     torch.manual_seed(args.seed)
     if use_cuda:
         torch.cuda.manual_seed(args.seed)
@@ -159,6 +208,13 @@ if __name__ == "__main__":
                     patience += 1
                     if patience == args.patience:
                         early_stop = True
+
+
+if __name__ == "__main__":
+    __spec__ = "ModuleSpec(name='builtins', loader=<class '_frozen_importlib.BuiltinImporter'>)"
+    args = parser()
+    save_parser(args, os.path.join(args.model_name, "parser_config.json"))
+    main(args)
                         
                         
     

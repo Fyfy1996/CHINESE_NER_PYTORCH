@@ -98,7 +98,7 @@ class crfDataset(Dataset):
     def __len__(self):
         return len(self.data)
     
-def _prepare_data(samples, vocab, pad, UNK, device=None):
+def _prepare_data(samples, vocab, pad, UNK, device=None, max_len=None, batch_first=False):
 #     
     """
     Transfer str/tag to ids for words/tags
@@ -107,11 +107,15 @@ def _prepare_data(samples, vocab, pad, UNK, device=None):
     samples = list(map(lambda s: s.strip().split(" "), samples))
     batch_size = len(samples)
     sizes = [len(s) for s in samples]
-    max_size = max(sizes)
-    x_np = np.full((batch_size, max_size), fill_value=vocab[pad], dtype='int64')
+    if max_len == None:
+        max_len = max(sizes)
+    x_np = np.full((batch_size, max_len), fill_value=vocab[pad], dtype='int64')
     for i in range(batch_size):
         x_np[i, :sizes[i]] = [vocab[token] if token in vocab else vocab[UNK] for token in samples[i]]
-    return torch.LongTensor(x_np.T).to(device)
+    if batch_first:
+        return torch.LongTensor(x_np).to(device)
+    else:
+        return torch.LongTensor(x_np.T).to(device)
 
 
 def prepare_databatches(batch_x, batch_y, token2idx, PAD, tag2idx, END_TAG, UNK, device=None):
@@ -130,7 +134,7 @@ def prepare_databatches(batch_x, batch_y, token2idx, PAD, tag2idx, END_TAG, UNK,
     return seq, tags, mask
     
     
-def prepare_xbatch_for_bert(x_batch, tokenizer, batch_first=False, device=None):
+def prepare_xbatch_for_bert(x_batch, tokenizer, batch_first=False, device=None, max_len=256):
     """
     Params:
         x_batch (tuple), the x part of one iter of a DataLoader, eg.("我 叫 汤 姆", "我 喜 欢 笑") 
@@ -144,8 +148,9 @@ def prepare_xbatch_for_bert(x_batch, tokenizer, batch_first=False, device=None):
     
     """
     # batch_size = len(x_batch)
-    str_batch =  [ ["[CLS]"] + tokenizer.tokenize(k.replace(" ","")) + ["[SEP]"] for k in x_batch]
-    max_len = max([len(line) for line in str_batch])
+    # str_batch =  [ ["[CLS]"] + tokenizer.tokenize(k.replace(" ","")) + ["[SEP]"] for k in x_batch]
+    str_batch = [tokenizer.tokenize(k.replace(" ","")) for k in x_batch]
+    # max_len = max([len(line) for line in str_batch])
     
     input_ids = []
     segment_ids = []
