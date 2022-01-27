@@ -49,7 +49,7 @@ model.load_state_dict(torch.load("models/best_model",map_location=torch.device('
 #%%
 from pytorch_pretrained_bert import BertTokenizer
 sent = ["毛 泽 东 在 大 陆 建 立 的 政 权 , 中 共 中 央 。",
-        "今 天 ， 在 北 京 ， 我 们 来 自 上 海 的 同 学 欢 聚 一 堂 。 潘 林 轩 如 此 说 道",
+        "今 天 ， 在 北 京 ， 我 们 来 自 上 海 的 同 学 欢 聚 一 堂 。 王 大 锤 如 此 说 道",
         "武 当 山 的 张 天 男 在 新 西 兰 跳 伞 ； 加 入 了 中 国 共 产 党 。"]
 tokenizer = BertTokenizer.from_pretrained("pretrained_models/bert-base-chinese")
 model.eval()
