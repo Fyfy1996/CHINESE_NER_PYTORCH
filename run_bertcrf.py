@@ -61,35 +61,6 @@ def parse():
     args = parser.parse_args()
     return args
 
-
-
-# class arguments:
-#     def __init__(self):
-#         self.model_name = "bertcrf"
-#         self.bert_model_path = os.path.join("pretrained_models","bert-base-chinese")
-#         self.bert_tokenizer_path = "bert-base-chinese" # os.path.join("pretrained_models","bert-base-chinese", "vocab")
-#
-#         self.train_data_path = "dataset/train_data"
-#         self.test_data_path = "dataset/test_data"
-#
-#         self.is_cuda = True
-#         self.seed = 2021
-#         self.batch_size = 2
-#
-#         self.with_lstm = False
-#         self.rnn_layer = 1
-#         self.dropout = 0.2
-#         self.with_layer_norm = False
-#         self.lr = 0.0005
-#         self.epochs = 50
-#         self.log_interval = 10
-#         self.save_interval = 30
-#         self.valid_interval = 60
-#         self.patience = 30
-#         self.load_chkpoint = False
-#         self.chkpoint_model = os.path.join(self.model_name,"newest_model")
-#         self.chkpoint_optim = os.path.join(self.model_name,"newest_optimizer")
-
 def main(args):
     
     START_TAG = "<START_TAG>"
@@ -121,7 +92,7 @@ def main(args):
     # tb_writer = SummaryWriter(args.model_name)
 
     id2tag = {v: k for k, v in tag2idx.items()}
-    if not os.path.exists(args.model_name):  # 判断是否存在文件夹如果不存在则创建为文件夹
+    if not os.path.exists(args.model_name): 
         os.makedirs(args.model_name)
     save_parser(args, os.path.join(args.model_name, "parser_config.json"))
     
@@ -188,10 +159,9 @@ def main(args):
             x_batch, y_batch = batch[0], batch[1]
             input_ids, segment_ids, mask = prepare_xbatch_for_bert(x_batch, tokenizer, max_len=args.max_len, 
                                               batch_first=True, device=device)
-            # y_batch = [START_TAG + " " + line + " " + END_TAG for line in y_batch]
+ 
             y_batch = _prepare_data(y_batch, tag2idx, END_TAG, device, max_len=args.max_len, batch_first=True)
-            # tags = _prepare_data(y_batch, tag2idx, END_TAG, device)
-            # tags = tags.to(device)
+
 
             optimizer.zero_grad()
             loss = model.neg_log_likelihood(input_ids, segment_ids, mask, y_batch)
@@ -227,7 +197,6 @@ def main(args):
 
 
 if __name__ == "__main__":
-    # __spec__ = "ModuleSpec(name='builtins', loader=<class '_frozen_importlib.BuiltinImporter'>)"
 
     args = parse()
     save_parser(args, os.path.join(args.model_name, "parser_config.json"))
