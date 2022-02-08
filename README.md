@@ -1,23 +1,29 @@
 # CHINESE_NER_PYTORCH
-Pytorch Version for NER, Name Entity Recognization
-
-Include LSTM (Random initialized Embeddings)+CRF
-
+Pytorch Version for NER, Name Entity Recognization<br>
+Tools including:<br> 
+	lstm + crf<br>
+	bert + softmax<br>
+	bert + crf<br>
+	
 ## Requirements
    
-   pytorch, test on 1.8.0, haven't tested on lower verisons
-      
+		pytorch 1.8.0
+		transformers, 4.15.0
+
 ## How to use
+Make sure your data is label in BIO methods <br>
+Then modify the data path in python scripts. See dataset.py for help.<br>
 
-Should Edit your own Dataset class (torch.utils.data.Dataset) to load your own data First
 
+Then adjust the params. Params can be checked in python scripts.
+Run this code to start the training:
 
-
-See dataset.py for help.
-
-Then adjust the params. Params can be changed in the two py files by changing the argument class 
-
-      python run_lstmcrf.py
+		python run_lstmcrf.py
       
-
-one_sent_entities.py is a sample that can input a sent in the ternimal and then print the entities inside the sentence. Can modify the modelpath to support your own model
+## Results
+These results are tested on the provided dataset
+||Precision|Recall|F1|
+|------|:-:|:-:|:-:|
+|LSTM+CRF|-|-|-|
+|BERT+SOFTMAX|91.65|92.13|91.18|
+|BERT+CRF|91.60|91.95|91.77|
